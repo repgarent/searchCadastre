@@ -1,0 +1,34 @@
+cadastre_dialogs.py : 
+
+	class cadastre_search_dialog => ligne 1217 à 2053
+
+		def checkMajicContent => ligne 1459 : vérification de la présence d'une base de données MAJIC.
+
+		def setupSearchCombobox => ligne 1510 : prepare les combobox pour la recherche et l'autocompletion. !!! ligne 1582 : initialisation du QCompleter.
+
+		def getFeaturesFromSqlQuery => ligne 1600 : obtention des donnés de la database.
+
+		def getFeatureFromComboboxValue => ligne 1649 : obtention de la fonction correspondant a la combobox choisie?.
+
+		def searchItem => ligne 1669 : obtention des items correspondant au noms donnés.
+
+		def onSearchItemChoose => ligne 1788 : selection des parcelles correspondantes aux items choisis dans les combobox adresse et propriétaires.
+
+		def onNonSearchItemChoose => ligne 1839 : obtient la fonction de l'article choisi dans comboboxe et remplit son enfant combobox ?.
+
+		def setZoomToChosenSearchCombobox => ligne 1879 : bouton "Zoom".
+
+		def setCenterToChosenSearchCombobox => ligne 1911 : bouton "Centrer".
+
+		def setSelectionToChosenSearchCombobox => ligne 1950 : bouton "Sélectionner".
+
+		def setCenterToChosenItem / setZoomToChosenItem / setSelectionToChosenItem => ligne 1969 à 2007 : evenement pour les boutons centrer, zoom, selection.
+		
+		def exportProprietaire / exportParcelle => ligne 2009 à 2041 : export des données sous pdf.
+
+
+	class cadastre_load_dialog => ligne 1121
+		fait appel a la classe cadastre_search_dialog
+
+	class cadastre_parcelle_dialog => ligne 2251
+		fait appel a la classe cadastre_search_dialog
