@@ -1238,7 +1238,7 @@ class LineEdit(QtGui.QLineEdit):
 
         model = QtGui.QStandardItemModel()
         #for i, word in enumerate(datas):
-        for i, word in enumerate(listData):
+        for i, word in enumerate(self.getList()):
             item = QtGui.QStandardItem(word)
             model.setItem(i, 0, item)
 
@@ -1252,11 +1252,13 @@ class LineEdit(QtGui.QLineEdit):
         db = None
         try:
             # Creates or opens a file called mydb with a SQLite3 DB
-            db = sqlite3.connect((os.path.join(os.path.dirname(__file__),'data.sqlite.sqlite')))
+            db = sqlite3.connect((os.path.join(os.path.dirname(__file__),'cad_sldc.sqlite')))
+            print "connexion réussie"
             # Get a cursor object
             cursor = db.cursor()
             # Select
-            cursor.execute('SELECT nom FROM proprietaire')
+            cursor.execute('SELECT DISTINCT TRIM(ddenom) AS nom FROM proprietaire WHERE ddenom IS NOT NULL ORDER BY ddenom')
+            print "requete execute"
             # Fetch
             data = list()
             for row in cursor.fetchall():
