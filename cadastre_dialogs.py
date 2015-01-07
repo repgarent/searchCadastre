@@ -1225,12 +1225,13 @@ from simple_cadastre_search_form import *
 class LineEdit(QtGui.QLineEdit):
     def __init__(self, parent=None):
         super(LineEdit, self).__init__(parent)
-        listData = ['alain', 'jean', 'aurelie', 'sylvain', 'emilie'] #création de la liste utilisé par la lineEdit
-
+        #listData = ['alain', 'jean', 'aurelie', 'sylvain', 'emilie'] #création de la liste utilisé par la lineEdit
+        self.simple_cadastre_search_dialog = simple_cadastre_search_dialog
+        self.qc = cadastre_common(self)
         # installe le QCompleter
         self.completerList = list()
-        for content in listData:
-            self.completerList.append(content)
+        #for content in listData:
+            #self.completerList.append(content)
         self.completer = QtGui.QCompleter(self)
         self.completer.setCompletionMode(QtGui.QCompleter.UnfilteredPopupCompletion)
         self.completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
@@ -1238,7 +1239,7 @@ class LineEdit(QtGui.QLineEdit):
 
         model = QtGui.QStandardItemModel()
         #for i, word in enumerate(datas):
-        for i, word in enumerate(self.getList()):
+        for i, word in enumerate(self.simple_cadastre_search_dialog.simplesearchItem()):
             item = QtGui.QStandardItem(word)
             model.setItem(i, 0, item)
 
@@ -1249,7 +1250,10 @@ class LineEdit(QtGui.QLineEdit):
         self.textChanged.connect(self.proxymodel.setFilterFixedString)
 
     def getList(self):
+
+        
         db = None
+        i=0
         try:
             # Creates or opens a file called mydb with a SQLite3 DB
             db = sqlite3.connect((os.path.join(os.path.dirname(__file__),'cad_sldc.sqlite')))
@@ -1262,7 +1266,9 @@ class LineEdit(QtGui.QLineEdit):
             # Fetch
             data = list()
             for row in cursor.fetchall():
+                i+=1
                 data.append(row[0])
+            print i
         # Catch the exception
         except sqlite3.Error, e:
             print "Error %s:" % e.args[0]
@@ -1273,6 +1279,7 @@ class LineEdit(QtGui.QLineEdit):
                 db.close()
 
         return data
+        
         
 # ---------------------------------------------------------
 #        simple search
@@ -1406,29 +1413,23 @@ class simple_cadastre_search_dialog(QDockWidget, Ui_simple_cadastre_search_form)
 
     def simplesearchItem(self):
 
-        listData = ['alain', 'jean', 'aurelie', 'sylvain', 'emilie'] #création de la liste utilisé par la lineEdit
+        QApplication.setOverrideCursor(Qt.WaitCursor)
 
-        # installe le QCompleter
-        self.completerList = list()
-        for content in listData:
-            self.completerList.append(content)
-            print content
-        self.completer = QtGui.QCompleter(self)
-        self.completer.setCompletionMode(QtGui.QCompleter.UnfilteredPopupCompletion)
-        self.completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
-        self.liProprietaire.setCompleter(self.completer)
+        dbtable = 'v_geo_parcelle'
+        layer = self.qc.getLayerFromLegendByTableProps( dbtable.replace('v_', '') )
+        if not layer:
+            QApplication.restoreOverrideCursor()
+            return None
+        connectionParams = self.qc.getConnectionParameterFromDbLayer(layer)
+        if not connectionParams:
+            QApplication.restoreOverrideCursor()
+            return None
+        sql = 'SELECT DISTINCT TRIM(ddenom) AS nom FROM proprietaire WHERE ddenom IS NOT NULL ORDER BY ddenom'
+        connector = self.qc.getConnectorFromUri(connectionParams)
+        self.connector = connector
+        [header, data, rowCount] = self.qc.fetchDataFromSqlQuery(connector,sql)
+        print [header, data, rowCount]
 
-        model = QtGui.QStandardItemModel()
-        #for i, word in enumerate(datas):
-        for i, word in enumerate(listData):
-            item = QtGui.QStandardItem(word)
-            model.setItem(i, 0, item)
-
-        self.proxymodel = QtGui.QSortFilterProxyModel(self)
-        self.proxymodel.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
-        self.proxymodel.setSourceModel(model)
-        self.completer.setModel(self.proxymodel)
-        self.proxymodel.setFilterFixedString
         
     def simpleonNonSearchItemChoose(self, key):
         '''
