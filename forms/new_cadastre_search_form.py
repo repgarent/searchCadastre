@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'forms/new_cadastre_search_form.ui'
 #
-# Created: Wed Jan 07 15:48:32 2015
+# Created: Thu Jan 08 10:17:06 2015
 #      by: PyQt4 UI code generator 4.10.2
 #
 # WARNING! All changes made in this file will be lost!
