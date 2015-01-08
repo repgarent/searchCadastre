@@ -1223,12 +1223,11 @@ class cadastre_load_dialog(QDialog, Ui_cadastre_load_form):
 from simple_cadastre_search_form import *
 
 class LineEdit(QtGui.QLineEdit, QDockWidget):
-    def __init__(self, listData, parent=None):
+    def __init__(self, header, data, rowCount, parent=None):
         self.qc = cadastre_common(self)
         super(LineEdit, self).__init__(parent)
         #listData = ['alain', 'jean', 'aurelie', 'sylvain', 'emilie'] #création de la liste utilisé par la lineEdit
         # installe le QCompleter
-        self.listData = listData
         self.completerList = list()
         #for content in listData:
             #self.completerList.append(content)
@@ -1236,10 +1235,13 @@ class LineEdit(QtGui.QLineEdit, QDockWidget):
         self.completer.setCompletionMode(QtGui.QCompleter.UnfilteredPopupCompletion)
         self.completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
         self.setCompleter(self.completer)
-
+  
+        unidim = [x for tu in data for x in tu ]
+        #print "unidim"
+        #print unidim
         model = QtGui.QStandardItemModel()
         #for i, word in enumerate(datas):
-        for i, word in enumerate(self.listData):
+        for i, word in enumerate(unidim):
             item = QtGui.QStandardItem(word)
             model.setItem(i, 0, item)
 
@@ -1314,14 +1316,14 @@ class simple_cadastre_search_dialog(QDockWidget, Ui_simple_cadastre_search_form)
     def __init__(self, iface):
         QDockWidget.__init__(self)
         self.iface = iface
-        self.setupUi(self)
-        self.iface.addDockWidget(Qt.RightDockWidgetArea, self)
-        listData = self.simplesearchItem()
-        self.liProprietaire = LineEdit(listData, parent=self.dockWidgetContents)
-        self.formLayout.setWidget(3, QtGui.QFormLayout.FieldRole, self.liProprietaire)
-
         # common cadastre methods
         self.qc = cadastre_common(self)
+
+        self.setupUi(self)
+        self.iface.addDockWidget(Qt.RightDockWidgetArea, self)
+        [header, data, rowCount] = self.simplesearchItem()
+        self.liProprietaire = LineEdit(header, data, rowCount, parent=self.dockWidgetContents)
+        self.formLayout.setWidget(3, QtGui.QFormLayout.FieldRole, self.liProprietaire)
         
         # database properties
         self.connector = None
@@ -1440,6 +1442,8 @@ class simple_cadastre_search_dialog(QDockWidget, Ui_simple_cadastre_search_form)
         print "jusqu'ici ca va"
         dbtable = 'v_geo_parcelle'
         layer = self.qc.getLayerFromLegendByTableProps( dbtable.replace('v_', '') )
+        print "layer"
+        print layer
         if not layer:
             QApplication.restoreOverrideCursor()
             return None
@@ -1448,12 +1452,17 @@ class simple_cadastre_search_dialog(QDockWidget, Ui_simple_cadastre_search_form)
             QApplication.restoreOverrideCursor()
             return None
         sql = 'SELECT DISTINCT TRIM(ddenom) AS nom FROM proprietaire WHERE ddenom IS NOT NULL ORDER BY ddenom'
-        print sql
+        #print sql
         connector = self.qc.getConnectorFromUri(connectionParams)
-        print connector
+        #print connector
         self.connector = connector
         [header, data, rowCount] = self.qc.fetchDataFromSqlQuery(connector,sql)
-        print [header, data, rowCount]
+        #print "header"
+        #print header
+        #print "data"
+        #print data
+        #print "rowCount"
+        #print rowCount
         return [header, data, rowCount]
 
         
