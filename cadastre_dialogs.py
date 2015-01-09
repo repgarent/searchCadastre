@@ -1223,7 +1223,8 @@ class cadastre_load_dialog(QDialog, Ui_cadastre_load_form):
 from simple_cadastre_search_form import *
 
 class LineEdit(QtGui.QLineEdit, QDockWidget):
-    def __init__(self, header, data, rowCount, parent=None):
+    def __init__(self, header, data, rowCount, iface, parent=None):
+        self.iface = iface
         self.qc = cadastre_common(self)
         super(LineEdit, self).__init__(parent)
         # installe le QCompleter
@@ -1234,7 +1235,7 @@ class LineEdit(QtGui.QLineEdit, QDockWidget):
         #for i, word in enumerate(datas):
         for i, word in enumerate(data):
             item = QtGui.QStandardItem(word[0])
-            item.setData(word[1], Qt.UserRole+32)
+            item.setData(word[1], Qt.UserRole)
             model.setItem(i, 0, item)
 
         self.completer = QtGui.QCompleter(self)
@@ -1243,25 +1244,39 @@ class LineEdit(QtGui.QLineEdit, QDockWidget):
         self.setCompleter(self.completer)
         slot = partial(self.itemSelected, item)
         self.completer.activated.connect(slot)
-        #for i, tupl in enumerate(data):
-            #print tupl[0]
-            #print tupl[1]
-        #unidim = [x for tu in data for x in tu ]
-        #print unidim
         
         self.proxymodel = QtGui.QSortFilterProxyModel(self)
         self.proxymodel.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
         self.proxymodel.setSourceModel(model)
         self.completer.setModel(self.proxymodel)
         self.textChanged.connect(self.proxymodel.setFilterFixedString)
-
+    
     def itemSelected(self, item):
-        #print "ca marche!"
-        print item.data(Qt.UserRole+32)
+        print item
+        cc = item.data(Qt.UserRole)
+        print cc
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        dbtable = 'v_geo_parcelle'
+        layer = self.qc.getLayerFromLegendByTableProps( dbtable.replace('v_', '') )
+        if not layer:
+            QApplication.restoreOverrideCursor()
+            return None
+        connectionParams = self.qc.getConnectionParameterFromDbLayer(layer)
+        if not connectionParams:
+            QApplication.restoreOverrideCursor()
+            return None
+        sql = "SELECT TRIM(parcelle), comptecommunal FROM parcelle LIKE %s" % cc
+        #print sql
+        connector = self.qc.getConnectorFromUri(connectionParams)
+        #print connector
+        self.connector = connector
+        [header, data, rowCount] = self.qc.fetchDataFromSqlQuery(connector,sql)
+        print [header, data, rowCount]
 
+
+    """
     def getList(self):
 
-        
         db = None
         i=0
         try:
@@ -1289,7 +1304,7 @@ class LineEdit(QtGui.QLineEdit, QDockWidget):
                 db.close()
 
         return data
-        
+    """    
         
 # ---------------------------------------------------------
 #        simple search
@@ -1308,7 +1323,7 @@ class simple_cadastre_search_dialog(QDockWidget, Ui_simple_cadastre_search_form)
         self.setupUi(self)
         self.iface.addDockWidget(Qt.RightDockWidgetArea, self)
         [header, data, rowCount] = self.simplesearchItem()
-        self.liProprietaire = LineEdit(header, data, rowCount, parent=self.dockWidgetContents)
+        self.liProprietaire = LineEdit(header, data, rowCount, self.iface, parent=self.dockWidgetContents)
         self.formLayout.setWidget(3, QtGui.QFormLayout.FieldRole, self.liProprietaire)
         
         # database properties
