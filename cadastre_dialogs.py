@@ -1226,7 +1226,6 @@ class LineEdit(QtGui.QLineEdit, QDockWidget):
     def __init__(self, header, data, rowCount, parent=None):
         self.qc = cadastre_common(self)
         super(LineEdit, self).__init__(parent)
-        #listData = ['alain', 'jean', 'aurelie', 'sylvain', 'emilie'] #création de la liste utilisé par la lineEdit
         # installe le QCompleter
         self.completerList = list()
         #for content in listData:
@@ -1235,15 +1234,19 @@ class LineEdit(QtGui.QLineEdit, QDockWidget):
         self.completer.setCompletionMode(QtGui.QCompleter.UnfilteredPopupCompletion)
         self.completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
         self.setCompleter(self.completer)
-  
-        unidim = [x for tu in data for x in tu ]
-        #print "unidim"
+        
+        #for i, tupl in enumerate(data):
+            #print tupl[0]
+            #print tupl[1]
+        #unidim = [x for tu in data for x in tu ]
         #print unidim
         model = QtGui.QStandardItemModel()
         #for i, word in enumerate(datas):
-        for i, word in enumerate(unidim):
-            item = QtGui.QStandardItem(word)
+        for i, word in enumerate(data):
+            item = QtGui.QStandardItem(word[0])
+            item.setData(word[1], Qt.UserRole+32)
             model.setItem(i, 0, item)
+            print item.data(Qt.UserRole+32)
 
         self.proxymodel = QtGui.QSortFilterProxyModel(self)
         self.proxymodel.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
@@ -1252,28 +1255,6 @@ class LineEdit(QtGui.QLineEdit, QDockWidget):
         self.textChanged.connect(self.proxymodel.setFilterFixedString)
 
     def getList(self):
-        QApplication.setOverrideCursor(Qt.WaitCursor)
-
-        dbtable = 'v_geo_parcelle'
-        layer = self.qc.getLayerFromLegendByTableProps( dbtable.replace('v_', '') )
-        if not layer:
-            QApplication.restoreOverrideCursor()
-            return None
-        connectionParams = self.qc.getConnectionParameterFromDbLayer(layer)
-        if not connectionParams:
-            QApplication.restoreOverrideCursor()
-            return None
-        sql = 'SELECT DISTINCT TRIM(ddenom) AS nom FROM proprietaire WHERE ddenom IS NOT NULL ORDER BY ddenom'
-        print sql
-        connector = self.qc.getConnectorFromUri(connectionParams)
-        print connector
-        self.connector = connector
-        [header, data, rowCount] = self.qc.fetchDataFromSqlQuery(connector,sql)
-        print [header, data, rowCount]
-        return [header, data, rowCount]
-
-
-    def getListV1(self):
 
         
         db = None
@@ -1439,11 +1420,8 @@ class simple_cadastre_search_dialog(QDockWidget, Ui_simple_cadastre_search_form)
     def simplesearchItem(self):
 
         QApplication.setOverrideCursor(Qt.WaitCursor)
-        print "jusqu'ici ca va"
         dbtable = 'v_geo_parcelle'
         layer = self.qc.getLayerFromLegendByTableProps( dbtable.replace('v_', '') )
-        print "layer"
-        print layer
         if not layer:
             QApplication.restoreOverrideCursor()
             return None
@@ -1451,18 +1429,12 @@ class simple_cadastre_search_dialog(QDockWidget, Ui_simple_cadastre_search_form)
         if not connectionParams:
             QApplication.restoreOverrideCursor()
             return None
-        sql = 'SELECT DISTINCT TRIM(ddenom) AS nom FROM proprietaire WHERE ddenom IS NOT NULL ORDER BY ddenom'
+        sql = 'SELECT DISTINCT TRIM(ddenom) AS nom, comptecommunal FROM proprietaire WHERE ddenom IS NOT NULL ORDER BY ddenom'
         #print sql
         connector = self.qc.getConnectorFromUri(connectionParams)
         #print connector
         self.connector = connector
         [header, data, rowCount] = self.qc.fetchDataFromSqlQuery(connector,sql)
-        #print "header"
-        #print header
-        #print "data"
-        #print data
-        #print "rowCount"
-        #print rowCount
         return [header, data, rowCount]
 
         
