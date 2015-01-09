@@ -1230,29 +1230,34 @@ class LineEdit(QtGui.QLineEdit, QDockWidget):
         self.completerList = list()
         #for content in listData:
             #self.completerList.append(content)
-        self.completer = QtGui.QCompleter(self)
-        self.completer.setCompletionMode(QtGui.QCompleter.UnfilteredPopupCompletion)
-        self.completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
-        self.setCompleter(self.completer)
-        
-        #for i, tupl in enumerate(data):
-            #print tupl[0]
-            #print tupl[1]
-        #unidim = [x for tu in data for x in tu ]
-        #print unidim
         model = QtGui.QStandardItemModel()
         #for i, word in enumerate(datas):
         for i, word in enumerate(data):
             item = QtGui.QStandardItem(word[0])
             item.setData(word[1], Qt.UserRole+32)
             model.setItem(i, 0, item)
-            print item.data(Qt.UserRole+32)
 
+        self.completer = QtGui.QCompleter(self)
+        self.completer.setCompletionMode(QtGui.QCompleter.UnfilteredPopupCompletion)
+        self.completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
+        self.setCompleter(self.completer)
+        slot = partial(self.itemSelected, item)
+        self.completer.activated.connect(slot)
+        #for i, tupl in enumerate(data):
+            #print tupl[0]
+            #print tupl[1]
+        #unidim = [x for tu in data for x in tu ]
+        #print unidim
+        
         self.proxymodel = QtGui.QSortFilterProxyModel(self)
         self.proxymodel.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
         self.proxymodel.setSourceModel(model)
         self.completer.setModel(self.proxymodel)
         self.textChanged.connect(self.proxymodel.setFilterFixedString)
+
+    def itemSelected(self, item):
+        #print "ca marche!"
+        print item.data(Qt.UserRole+32)
 
     def getList(self):
 
