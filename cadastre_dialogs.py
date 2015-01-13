@@ -430,9 +430,9 @@ class cadastre_common():
         header = []
         rowCount = 0
         c = None
-
+        print sql
         try:
-            c = connector._execute(None,unicode(sql))
+            c = connector._execute(None,sql)
             data = []
             header = connector._get_cursor_columns(c)
 
@@ -470,7 +470,6 @@ class cadastre_common():
         return [header, data, rowCount]
         '''
         QApplication.setOverrideCursor(Qt.WaitCursor)
-
         data = []
         header = []
         rowCount = 0
@@ -507,7 +506,6 @@ class cadastre_common():
             if c:
                 c.close()
                 del c
-
         return [header, data, rowCount]
 
 
@@ -1242,9 +1240,9 @@ class LineEdit(QtGui.QLineEdit, QDockWidget):
         self.completer.setCompletionMode(QtGui.QCompleter.UnfilteredPopupCompletion)
         self.completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
         self.setCompleter(self.completer)
-        slot = partial(self.itemSelected, item)
-        self.completer.activated.connect(slot)
-        
+        #slot = partial(self.itemSelected, index)
+        self.completer.activated[QModelIndex].connect(self.itemSelected)
+
         self.proxymodel = QtGui.QSortFilterProxyModel(self)
         self.proxymodel.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
         self.proxymodel.setSourceModel(model)
@@ -1252,9 +1250,10 @@ class LineEdit(QtGui.QLineEdit, QDockWidget):
         self.textChanged.connect(self.proxymodel.setFilterFixedString)
     
     def itemSelected(self, item):
-        print item
         cc = item.data(Qt.UserRole)
+        cc = unicode(cc)
         print cc
+        print type(cc)
         QApplication.setOverrideCursor(Qt.WaitCursor)
         dbtable = 'v_geo_parcelle'
         layer = self.qc.getLayerFromLegendByTableProps( dbtable.replace('v_', '') )
@@ -1266,11 +1265,10 @@ class LineEdit(QtGui.QLineEdit, QDockWidget):
             QApplication.restoreOverrideCursor()
             return None
         sql = "SELECT TRIM(parcelle), comptecommunal FROM parcelle LIKE %s" % cc
-        #print sql
         connector = self.qc.getConnectorFromUri(connectionParams)
         #print connector
         self.connector = connector
-        [header, data, rowCount] = self.qc.fetchDataFromSqlQuery(connector,sql)
+        [header, data, rowCount] = self.qc.simplefetchDataFromSqlQuery(connector,sql)
         print [header, data, rowCount]
 
 
