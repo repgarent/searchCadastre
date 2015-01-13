@@ -1251,7 +1251,7 @@ class LineEdit(QtGui.QLineEdit, QDockWidget):
     
     def itemSelected(self, item):
         cc = item.data(Qt.UserRole)
-        cc = unicode(cc)
+        #cc = '"'+cc+'"'
         print cc
         print type(cc)
         QApplication.setOverrideCursor(Qt.WaitCursor)
@@ -1264,12 +1264,14 @@ class LineEdit(QtGui.QLineEdit, QDockWidget):
         if not connectionParams:
             QApplication.restoreOverrideCursor()
             return None
-        sql = "SELECT TRIM(parcelle), comptecommunal FROM parcelle LIKE %s" % cc
+        #sql = "SELECT parcelle FROM parcelle WHERE comptecommunal=%s" %cc
+        sql = "SELECT parcelle FROM parcelle WHERE comptecommunal='{}'".format(cc)
         connector = self.qc.getConnectorFromUri(connectionParams)
         #print connector
         self.connector = connector
-        [header, data, rowCount] = self.qc.simplefetchDataFromSqlQuery(connector,sql)
-        print [header, data, rowCount]
+        [header, data, rowCount] = self.qc.fetchDataFromSqlQuery(connector,sql)
+        for i, word in enumerate(data):
+            print word[0]
 
 
     """
@@ -1405,6 +1407,28 @@ class simple_cadastre_search_dialog(QDockWidget, Ui_simple_cadastre_search_form)
             }
         }
 
+        # center/zoom/selection buttons
+        self.zoomButtons = {
+            'proprietaire':{
+                'buttons':{
+                    'centre': self.btCentrerProprietaire,
+                    'zoom': self.btZoomerProprietaire,
+                    'select': self.btSelectionnerProprietaire
+                },
+                'comboboxes': ['proprietaire', 'parcelle_proprietaire']
+            }
+        }
+        zoomButtonsFunctions = {
+            'centre': self.setCenterToChosenItem,
+            'zoom': self.setZoomToChosenItem,
+            'select': self.setSelectionToChosenItem
+        }
+        for key, item in self.zoomButtons.items():
+            for k, button in item['buttons'].items():
+                control = button
+                slot = partial(zoomButtonsFunctions[k], key)
+                control.clicked.connect(slot)
+                
         # Manuel search button and combo (proprietaire, adresse)
         for key, item in self.searchComboBoxes.items():
             # manual search widgets
