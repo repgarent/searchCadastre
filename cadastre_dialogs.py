@@ -1227,10 +1227,8 @@ class LineEdit(QtGui.QLineEdit, QDockWidget):
         super(LineEdit, self).__init__(parent)
         # installe le QCompleter
         self.completerList = list()
-        #for content in listData:
-            #self.completerList.append(content)
         model = QtGui.QStandardItemModel()
-        #for i, word in enumerate(datas):
+
         for i, word in enumerate(data):
             item = QtGui.QStandardItem(word[0])
             item.setData(word[1], Qt.UserRole)
@@ -1251,9 +1249,6 @@ class LineEdit(QtGui.QLineEdit, QDockWidget):
     
     def itemSelected(self, item):
         cc = item.data(Qt.UserRole)
-        #cc = '"'+cc+'"'
-        print cc
-        print type(cc)
         QApplication.setOverrideCursor(Qt.WaitCursor)
         dbtable = 'v_geo_parcelle'
         layer = self.qc.getLayerFromLegendByTableProps( dbtable.replace('v_', '') )
@@ -1267,44 +1262,14 @@ class LineEdit(QtGui.QLineEdit, QDockWidget):
         #sql = "SELECT parcelle FROM parcelle WHERE comptecommunal=%s" %cc
         sql = "SELECT parcelle FROM parcelle WHERE comptecommunal='{}'".format(cc)
         connector = self.qc.getConnectorFromUri(connectionParams)
-        #print connector
         self.connector = connector
         [header, data, rowCount] = self.qc.fetchDataFromSqlQuery(connector,sql)
+        self.layer = layer
         for i, word in enumerate(data):
             print word[0]
 
-
-    """
-    def getList(self):
-
-        db = None
-        i=0
-        try:
-            # Creates or opens a file called mydb with a SQLite3 DB
-            db = sqlite3.connect((os.path.join(os.path.dirname(__file__),'cad_sldc.sqlite')))
-            print "connexion réussie"
-            # Get a cursor object
-            cursor = db.cursor()
-            # Select
-            cursor.execute('SELECT DISTINCT TRIM(ddenom) AS nom FROM proprietaire WHERE ddenom IS NOT NULL ORDER BY ddenom')
-            print "requete execute"
-            # Fetch
-            data = list()
-            for row in cursor.fetchall():
-                i+=1
-                data.append(row[0])
-            print i
-        # Catch the exception
-        except sqlite3.Error, e:
-            print "Error %s:" % e.args[0]
-            sys.exit(1)
-
-        finally:
-            if db:
-                db.close()
-
-        return data
-    """    
+    def activeLayer(self):
+        return self.layer
         
 # ---------------------------------------------------------
 #        simple search
@@ -1317,16 +1282,18 @@ class simple_cadastre_search_dialog(QDockWidget, Ui_simple_cadastre_search_form)
     def __init__(self, iface):
         QDockWidget.__init__(self)
         self.iface = iface
+        self.setupUi(self)
+        self.iface.addDockWidget(Qt.RightDockWidgetArea, self)
+
         # common cadastre methods
         self.qc = cadastre_common(self)
 
-        self.setupUi(self)
-        self.iface.addDockWidget(Qt.RightDockWidgetArea, self)
         [header, data, rowCount] = self.simplesearchItem()
         self.liProprietaire = LineEdit(header, data, rowCount, self.iface, parent=self.dockWidgetContents)
         self.formLayout.setWidget(3, QtGui.QFormLayout.FieldRole, self.liProprietaire)
         
         # database properties
+        self.connectionParams = None
         self.connector = None
         self.dbType = None
         self.schema = None
@@ -1340,6 +1307,11 @@ class simple_cadastre_search_dialog(QDockWidget, Ui_simple_cadastre_search_form)
         self.sectionFeatures = None
         self.sectionRequest = None
         self.sectionCommuneFeature = None
+
+        aLayer = self.qc.getLayerFromLegendByTableProps('geo_commune')
+        if aLayer:
+            self.connectionParams = self.qc.getConnectionParameterFromDbLayer(aLayer)
+            self.connector = self.qc.getConnectorFromUri( self.connectionParams )
 
         # signals/slots
         self.searchComboBoxes = {
@@ -1406,22 +1378,22 @@ class simple_cadastre_search_dialog(QDockWidget, Ui_simple_cadastre_search_form)
                 }
             }
         }
-
+        
         # center/zoom/selection buttons
         self.zoomButtons = {
             'proprietaire':{
                 'buttons':{
-                    'centre': self.btCentrerProprietaire,
-                    'zoom': self.btZoomerProprietaire,
-                    'select': self.btSelectionnerProprietaire
+                    'centre': self.btCentrer,
+                    #'zoom': self.btZoomer,
+                    #'select': self.btSelectionner
                 },
-                'comboboxes': ['proprietaire', 'parcelle_proprietaire']
+                'comboboxes': ['proprietaire']
             }
         }
         zoomButtonsFunctions = {
-            'centre': self.setCenterToChosenItem,
-            'zoom': self.setZoomToChosenItem,
-            'select': self.setSelectionToChosenItem
+            'centre': self.simplesetCenterToChosenItem,
+            #'zoom': self.setZoomToChosenItem,
+            #'select': self.setSelectionToChosenItem
         }
         for key, item in self.zoomButtons.items():
             for k, button in item['buttons'].items():
@@ -1571,8 +1543,8 @@ class simple_cadastre_search_dialog(QDockWidget, Ui_simple_cadastre_search_form)
 
         if not self.hasMajicDataParcelle or not self.hasMajicDataVoie:
             self.qc.simpleupdateLog(u"<b>Pas de données MAJIC non bâties et/ou fantoir</b> -> désactivation de la recherche d'adresse")
-        if not self.hasMajicDataProp:
-            self.qc.simpleupdateLog(u"<b>Pas de données MAJIC propriétaires</b> -> désactivation de la recherche de propriétaires")
+        #if not self.hasMajicDataProp:
+            #self.qc.simpleupdateLog(u"<b>Pas de données MAJIC propriétaires</b> -> désactivation de la recherche de propriétaires")
     
     def simplesetupSearchCombobox(self, combo, filterExpression=None, queryMode='qgis'):
         '''
@@ -1668,6 +1640,27 @@ class simple_cadastre_search_dialog(QDockWidget, Ui_simple_cadastre_search_form)
 
         return [layer, features]
         
+    def simplesetCenterToChosenItem(self, key):
+        '''
+        Set map center corresponding
+        to the chosen feature(s) for the
+        last not null item in the list
+        '''
+        layer = self.liProprietaire.activeLayer()
+        w = None
+        for item in self.zoomButtons[key]['comboboxes']:
+            if self.searchComboBoxes[item]['chosenFeature'] \
+            and layer:
+                w = item
+        print layer
+        if w:
+            print "on passe a la suite"
+        else:
+            print "ca bug"
+            #self.setCenterToChosenSearchCombobox(w)
+
+
+
     def simplegetFeaturesFromSqlQuery(self, layer, filterExpression=None, attributes='*', orderBy=None):
         '''
         Get data from a db table,
